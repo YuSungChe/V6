@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=390, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>百家樂趨勢分析 V6</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="百家樂AI">
+  <meta name="color-scheme" content="only light">
+  <meta name="supported-color-schemes" content="only light">
+  <style>
+  :root{
+    --bg:#0a0e1a;--card:#111827;--card2:#1a2235;
+    --border:#1e2d45;--gold:#f5c518;--gold2:#c9960c;
+    --red:#e03030;--blue:#2b72e8;--green:#18a84a;
+    --text:#dde4f0;--muted:#5a6a85;--r:12px;
+    color-scheme: only light;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;
+    -webkit-text-size-adjust:100%;text-size-adjust:100%;}
+
+html{background:#0a0e1a !important;font-size:16px;}
+body{
+background:#0a0e1a !important;color:#dde4f0 !important;
+font-family:-apple-system,‘Helvetica Neue’,‘PingFang TC’,‘Microsoft JhengHei’,sans-serif;
+font-size:16px;min-height:100vh;
+}
+/* 防止白底露出，強制所有元素繼承正確顏色 */
+#wrap,#mainWrap{background:#0a0e1a !important;}
+#lockOverlay{color:#dde4f0 !important;}
+#lockOverlay h2{color:#f5c518 !important;}
+#lockDesc{color:#aab4c8 !important;}
+.title{color:#f5c518 !important;}
+.ver{color:#5a6a85 !important;}
+#predHeader span,#predHeaderRight,#hdrStreak,#hdrCount{color:#5a6a85 !important;}
+#waitBox .wt{color:#5a6a85 !important;}
+#waitNum{color:#dde4f0 !important;}
+
+/* ── 頂部 ── */
+#topbar{
+background:linear-gradient(90deg,#0d1526,#16243e,#0d1526);
+border-bottom:1px solid var(–border);
+display:flex;align-items:center;justify-content:space-between;
+padding:12px 16px;gap:8px;
+position:sticky;top:0;z-index:10;
+}
+.title{font-size:1.1rem;font-weight:800;color:var(–gold);letter-spacing:1px;}
+.ver{font-size:.62rem;color:var(–muted);letter-spacing:2px;}
+#topRight{display:flex;align-items:center;gap:6px;}
+#netBadge{font-size:.65rem;padding:3px 9px;border-radius:20px;
+background:#16a34a18;border:1px solid #16a34a55;color:#4ade80;white-space:nowrap;}
+#timerBar{display:none;align-items:center;gap:4px;background:#1a2235;
+border:1px solid #f5c51844;border-radius:8px;padding:4px 9px;
+font-size:.68rem;color:var(–gold);white-space:nowrap;}
+#timerBar.warn{border-color:#f59e0b88;color:#fbbf24;}
+#timerBar.danger{border-color:#ef444488;color:#f87171;}
+#timerTxt{font-weight:700;}
+
+/* ── 主內容 ── */
+#wrap{padding:12px 14px;display:flex;flex-direction:column;gap:12px;}
+
+/* ── 上半 row ── */
+#row1{display:flex;gap:12px;}
+
+/* 左欄 */
+#colLeft{flex:0 0 auto;width:140px;display:flex;flex-direction:column;gap:8px;}
+.bet-btn{
+border:none;border-radius:12px;font-size:1.4rem;font-weight:900;
+letter-spacing:2px;cursor:pointer;padding:15px 0;color:white;
+transition:transform .1s,opacity .1s;width:100%;
+}
+.bet-btn:active{transform:scale(.93);opacity:.85;}
+.btn-b{background:linear-gradient(135deg,#b02020,#e03030);box-shadow:0 3px 10px rgba(224,48,48,.4);}
+.btn-p{background:linear-gradient(135deg,#1858c8,#2b72e8);box-shadow:0 3px 10px rgba(43,114,232,.4);}
+.btn-t{background:linear-gradient(135deg,#0f8a38,#18a84a);box-shadow:0 3px 10px rgba(24,168,74,.3);}
+.util-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.util-btn{
+border:none;border-radius:9px;font-size:.75rem;font-weight:700;
+padding:10px 4px;cursor:pointer;transition:transform .1s;letter-spacing:.5px;
+}
+.util-btn:active{transform:scale(.93);}
+#btnUndo{background:#1e2d45;color:#7a9cc8;}
+#btnClear{background:#1e1408;color:#d97706;border:1px solid #7c3a0033;}
+#statsRow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
+.stat-mini{background:#0d1526;border:1px solid var(–border);
+border-radius:9px;text-align:center;padding:7px 2px;}
+.stat-mini .sv{font-size:1.05rem;font-weight:900;}
+.stat-mini .sk{font-size:.58rem;color:var(–muted);}
+
+/* 右欄 */
+#colRight{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:9px;}
+
+/* 歷史 */
+#historyBox{
+background:#0d1526;border:1px solid var(–border);border-radius:var(–r);
+padding:9px 12px;height:90px;overflow-y:auto;
+font-size:.82rem;line-height:1.7;color:var(–muted);
+font-family:‘Courier New’,monospace;
+}
+#historyBox::-webkit-scrollbar{width:3px;}
+#historyBox::-webkit-scrollbar-thumb{background:var(–border);border-radius:2px;}
+
+/* 路單 */
+#roadWrap{
+background:#0d1526;border:1px solid var(–border);border-radius:var(–r);
+overflow:hidden;
+}
+#roadCanvas{display:block;width:100%;height:185px;}
+
+/* ── 預測區 ── */
+#predCard{
+background:var(–card);border:1px solid var(–border);
+border-radius:var(–r);overflow:hidden;
+}
+#predHeader{
+display:flex;align-items:center;justify-content:space-between;
+padding:10px 16px;background:#0d1526;border-bottom:1px solid var(–border);
+}
+#predHeader span{font-size:.75rem;font-weight:700;color:var(–muted);
+letter-spacing:2px;text-transform:uppercase;}
+#predHeaderRight{display:flex;gap:8px;align-items:center;font-size:.75rem;color:var(–muted);}
+
+#predBody{padding:14px 16px;}
+
+/* 等待 */
+#waitBox{text-align:center;padding:24px 0;}
+#waitBox .wt{font-size:.9rem;color:var(–muted);margin-bottom:12px;}
+.prog-track{background:#0d1526;border:1px solid var(–border);border-radius:5px;height:8px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(–gold2),var(–gold));
+border-radius:5px;transition:width .3s;}
+
+/* 結果 */
+#resultBox{display:none;align-items:center;gap:14px;}
+#predBig{flex:0 0 auto;text-align:center;min-width:80px;}
+#predLabel{font-size:1.7rem;font-weight:900;line-height:1;animation:pop .35s ease;}
+@keyframes pop{0%{transform:scale(.7);opacity:0;}65%{transform:scale(1.1);}100%{transform:scale(1);opacity:1;}}
+#predLabel.bk{color:var(–red);text-shadow:0 0 18px rgba(224,48,48,.5);}
+#predLabel.pl{color:var(–blue);text-shadow:0 0 18px rgba(43,114,232,.5);}
+#predSub{font-size:.62rem;color:var(–muted);margin-top:3px;letter-spacing:1px;}
+
+#predMid{flex:1 1 0;display:flex;flex-direction:column;gap:8px;min-width:0;}
+.prob-line{display:flex;align-items:center;gap:7px;}
+.prob-side{font-size:.72rem;color:var(–muted);width:20px;text-align:center;}
+.prob-track2{flex:1;background:#0d1526;border-radius:5px;height:10px;overflow:hidden;border:1px solid var(–border);}
+.prob-fill2{height:100%;border-radius:5px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.pb{background:linear-gradient(90deg,#b02020,#e03030);}
+.pp{background:linear-gradient(90deg,#1858c8,#2b72e8);}
+.prob-pct{font-size:.7rem;font-weight:700;width:36px;text-align:right;}
+.risk-pill{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.65rem;
+font-weight:700;letter-spacing:.5px;align-self:flex-start;}
+.rh{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.3);}
+.rm{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.3);}
+.rl{background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
+
+#predRight{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:62px;}
+.pr-stat{text-align:right;}
+.pr-val{font-size:1.15rem;font-weight:900;color:var(–gold);}
+.pr-key{font-size:.58rem;color:var(–muted);}
+#hitRow{display:flex;flex-wrap:wrap;gap:3px;justify-content:flex-end;margin-top:2px;}
+.hdot{width:17px;height:17px;border-radius:50%;font-size:.5rem;font-weight:700;
+display:flex;align-items:center;justify-content:center;}
+.hy{background:rgba(34,197,94,.18);color:#4ade80;}
+.hn{background:rgba(239,68,68,.14);color:#f87171;}
+
+/* ── 解鎖疊層 ── */
+#lockOverlay{
+display:flex;flex-direction:column;
+align-items:center;justify-content:center;
+gap:14px;text-align:center;padding:40px 30px;
+background:var(–bg);
+min-height:100vh;
+}
+.lk-icon{font-size:3rem;}
+#lockOverlay h2{font-size:1.4rem;color:var(–gold);font-weight:800;}
+#lockDesc{font-size:.9rem;color:#aab4c8;}
+#unlockBtn{
+background:linear-gradient(135deg,var(–gold2),var(–gold));color:#0a0e1a;
+border:none;padding:16px 48px;border-radius:12px;
+font-size:1.1rem;font-weight:900;cursor:pointer;
+box-shadow:0 4px 20px rgba(245,197,24,.4);
+}
+#unlockBtn:active{opacity:.85;}
+#pwArea{display:none;flex-direction:column;align-items:center;gap:10px;width:100%;}
+#pwInput{
+width:240px;padding:14px;background:#0d1526;
+border:2px solid var(–gold2);border-radius:10px;
+color:white;font-size:1.15rem;text-align:center;letter-spacing:6px;outline:none;
+}
+#pwInput:focus{border-color:var(–gold);}
+#pwOkBtn{background:#16a34a;color:white;border:none;padding:13px 36px;
+border-radius:10px;font-size:.95rem;font-weight:700;cursor:pointer;}
+#pwOkBtn:active{opacity:.85;}
+#pwErr{color:#f87171;font-size:.85rem;min-height:1.2rem;text-align:center;}
+
+/* ── 確認清空 ── */
+#confirmOverlay{
+position:fixed;inset:0;
+background:rgba(0,0,0,.85);
+z-index:99999;
+display:none;align-items:center;justify-content:center;padding:24px;
+}
+#confirmBox{background:var(–card2);border:1px solid var(–border);border-radius:16px;
+padding:26px 22px;text-align:center;max-width:290px;width:100%;}
+#confirmBox h3{font-size:1.05rem;color:var(–gold);margin-bottom:10px;}
+#confirmBox p{font-size:.85rem;color:var(–muted);margin-bottom:22px;line-height:1.6;}
+#confirmBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+#confirmNo{background:#1e2d45;color:#94a3b8;border:none;border-radius:9px;
+padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;}
+#confirmYes{background:linear-gradient(135deg,#b02020,#e03030);color:white;border:none;
+border-radius:9px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;}
+</style>
+
+</head>
+<body>
+
+<!-- 解鎖疊層：在 body 最頂部，解鎖前完全擋住後面的內容 -->
+
+<div id="lockOverlay">
+  <div class="lk-icon">🔐</div>
+  <h2>百家樂趨勢分析 V6</h2>
+  <p id="lockDesc">請輸入密碼以解鎖使用</p>
+  <button id="unlockBtn">🔓 輸入密碼解鎖</button>
+  <div id="pwArea">
+    <input id="pwInput" type="password" placeholder="輸入密碼" maxlength="20" autocomplete="off">
+    <button id="pwOkBtn">✅ 確認</button>
+    <div id="pwErr"></div>
+  </div>
+</div>
+
+<!-- 主內容：解鎖前隱藏 -->
+
+<div id="mainWrap" style="display:none;">
+<div id="confirmOverlay">
+  <div id="confirmBox">
+    <h3>⚠️ 確認清空</h3>
+    <p>將清空所有開牌歷史及 AI 學習紀錄，此操作無法復原。</p>
+    <div id="confirmBtns">
+      <button id="confirmNo">取消</button>
+      <button id="confirmYes">確定清空</button>
+    </div>
+  </div>
+</div>
+
+<!-- 頂部 -->
+
+<div id="topbar">
+  <div>
+    <div class="title">🎴 百家樂趨勢分析</div>
+    <div class="ver">V6 · AI ADAPTIVE ENGINE</div>
+  </div>
+  <div id="topRight">
+    <div id="timerBar">⏱ <span id="timerTxt">--:--</span></div>
+    <div id="netBadge">● 載入中</div>
+  </div>
+</div>
+
+<!-- 主內容 -->
+
+<div id="wrap">
+
+  <!-- 上半：按鈕 + 歷史路單 -->
+
+  <div id="row1">
+    <div id="colLeft">
+      <button id="btnB" class="bet-btn btn-b">莊</button>
+      <button id="btnP" class="bet-btn btn-p">閒</button>
+      <button id="btnT" class="bet-btn btn-t">和</button>
+      <div class="util-row">
+        <button id="btnUndo" class="util-btn">↩刪除</button>
+        <button id="btnClear" class="util-btn">🗑清空</button>
+      </div>
+      <div id="statsRow">
+        <div class="stat-mini"><div class="sv" style="color:var(--red)"   id="stB">0</div><div class="sk">莊</div></div>
+        <div class="stat-mini"><div class="sv" style="color:var(--blue)"  id="stP">0</div><div class="sk">閒</div></div>
+        <div class="stat-mini"><div class="sv" style="color:var(--green)" id="stT">0</div><div class="sk">和</div></div>
+      </div>
+    </div>
+    <div id="colRight">
+      <div id="historyBox"><span style="color:var(--muted)">尚無記錄</span></div>
+      <div id="roadWrap"><canvas id="roadCanvas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- 預測 -->
+
+  <div id="predCard">
+    <div id="predHeader">
+      <span>🔮 AI 預測引擎</span>
+      <div id="predHeaderRight">
+        <span id="hdrStreak"></span>
+        <span id="hdrCount" style="color:var(--gold)"></span>
+      </div>
+    </div>
+    <div id="predBody">
+      <div id="waitBox">
+        <div class="wt">累積資料中… <span id="waitNum">0</span> / 20 筆</div>
+        <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      </div>
+      <div id="resultBox">
+        <div id="predBig">
+          <div id="predLabel">—</div>
+          <div id="predSub">PREDICTION</div>
+        </div>
+        <div id="predMid">
+          <div class="prob-line">
+            <span class="prob-side" style="color:var(--red)">莊</span>
+            <div class="prob-track2"><div class="prob-fill2 pb" id="barB" style="width:50%"></div></div>
+            <span class="prob-pct" id="pctB" style="color:var(--red)">50%</span>
+          </div>
+          <div class="prob-line">
+            <span class="prob-side" style="color:var(--blue)">閒</span>
+            <div class="prob-track2"><div class="prob-fill2 pp" id="barP" style="width:50%"></div></div>
+            <span class="prob-pct" id="pctP" style="color:var(--blue)">50%</span>
+          </div>
+          <span class="risk-pill" id="riskPill"></span>
+        </div>
+        <div id="predRight">
+          <div class="pr-stat"><div class="pr-val" id="accVal">--%</div><div class="pr-key">命中率</div></div>
+          <div class="pr-stat"><div class="pr-val" id="hitVal">0</div><div class="pr-key">命中/<span id="totVal">0</span></div></div>
+          <div id="hitRow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- 底部購買連結 -->
+
+<div style="text-align:center;padding:20px 16px 30px;border-top:1px solid #1e2d45;margin-top:4px;">
+  <p style="font-size:.85rem;color:#7a8aaa;line-height:1.8;">
+    欲購買永久使用版請點連結🔗<br>
+    <a href="https://patreon.com/yusungche"
+       target="_blank"
+       style="color:#f5c518;font-weight:700;font-size:.9rem;
+              text-decoration:none;border-bottom:1px solid #f5c51855;
+              padding-bottom:1px;">
+      patreon.com/yusungche
+    </a>
+  </p>
+</div>
+
+</div><!-- /mainWrap -->
+
+<script>
+/* ── SW v11 ── */
+(function(){
+  if(!('serviceWorker' in navigator))return;
+  navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));
+  const c=`const V='b6v11';self.addEventListener('install',e=>{e.waitUntil(caches.open(V).then(c=>c.addAll([location.href])).then(()=>self.skipWaiting()));});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==V).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>caches.match(location.href))));});`;
+  try{
+    navigator.serviceWorker.register(URL.createObjectURL(new Blob([c],{type:'application/javascript'})))
+      .then(()=>{const b=document.getElementById('netBadge');b.textContent='● 離線就緒';b.style.color='#4ade80';})
+      .catch(()=>{const b=document.getElementById('netBadge');b.textContent='● 本地模式';b.style.color='#fbbf24';});
+  }catch(e){const b=document.getElementById('netBadge');b.textContent='● 本地模式';b.style.color='#fbbf24';}
+  window.addEventListener('offline',()=>{document.getElementById('netBadge').textContent='● 離線中';});
+  window.addEventListener('online', ()=>{document.getElementById('netBadge').textContent='● 已連線';});
+})();
+
+/* ── 密碼 ── */
+const P1='17881788',P2='59875987';
+const P3='12341234',P3_MS=15*60*1000,   P3_EK='b6t3e',P3_UK='b6t3u';
+const P4='43214321',P4_MS=24*3600*1000, P4_EK='b6t4e',P4_UK='b6t4u';
+let timerIv=null;
+function getExp(k){const v=localStorage.getItem(k);return v?parseInt(v):null;}
+function isAlive(k){const e=getExp(k);return !!e&&Date.now()<e;}
+function isUsed(k){return localStorage.getItem(k)==='1';}
+
+function startTimer(ek){
+  const bar=document.getElementById('timerBar'),txt=document.getElementById('timerTxt');
+  bar.style.display='flex';
+  if(timerIv)clearInterval(timerIv);
+  function tick(){
+    const exp=getExp(ek);if(!exp){clearInterval(timerIv);bar.style.display='none';return;}
+    const left=Math.max(0,exp-Date.now());
+    const h=Math.floor(left/3600000),m=Math.floor((left%3600000)/60000),s=Math.floor((left%60000)/1000);
+    txt.textContent=h>0?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    bar.className=left<=60000?'danger':left<=300000?'warn':'';
+    if(left<=0){
+      clearInterval(timerIv);bar.style.display='none';localStorage.removeItem(ek);
+      document.getElementById('mainWrap').style.display='none';
+      document.getElementById('lockOverlay').style.display='flex';
+      document.getElementById('pwArea').style.display='flex';
+      document.getElementById('lockDesc').textContent='⏰ 限時使用已到期';
+      document.getElementById('pwErr').textContent='請輸入正式密碼繼續使用';
+      document.getElementById('pwInput').value='';
+    }
+  }
+  tick();timerIv=setInterval(tick,1000);
+}
+
+/* ── 資料 ── */
+const SK='b6h',WK='b6w',PLK='b6p';
+let history=[],predLog=[];
+let W={_a:1,_b:1,_c:1,_d:1,_e:1,_f:1,_g:1};
+const LR=.09,WMN=.15,WMX=3.5,clamp=v=>Math.min(WMX,Math.max(WMN,v));
+function loadAll(){
+  try{const h=localStorage.getItem(SK);if(h)history=JSON.parse(h);}catch(e){}
+  try{const w=localStorage.getItem(WK);if(w)W=JSON.parse(w);}catch(e){}
+  try{const p=localStorage.getItem(PLK);if(p)predLog=JSON.parse(p);}catch(e){}
+}
+const saveH=()=>localStorage.setItem(SK,JSON.stringify(history));
+const saveW=()=>localStorage.setItem(WK,JSON.stringify(W));
+const saveP=()=>localStorage.setItem(PLK,JSON.stringify(predLog));
+
+/* ── 7 個模型 ── */
+function mA(){const st=['B','P','T'],mat=st.map(()=>st.map(()=>0));for(let i=1;i<history.length;i++)mat[st.indexOf(history[i-1].winner)][st.indexOf(history[i].winner)]++;const li=st.indexOf(history[history.length-1].winner),tot=mat[li].reduce((a,b)=>a+b,0)||1;return{B:mat[li][0]/tot*100,P:mat[li][1]/tot*100};}
+function mB(){if(history.length<3)return{B:50,P:50};const cnt={};for(let i=2;i<history.length;i++){const k=history[i-2].winner+history[i-1].winner;if(!cnt[k])cnt[k]={B:0,P:0,T:0};cnt[k][history[i].winner]++;}const k2=history[history.length-2].winner+history[history.length-1].winner,c=cnt[k2]||{B:1,P:1,T:0},tot=c.B+c.P+c.T||1;return{B:c.B/tot*100,P:c.P/tot*100};}
+function mC(){let pred={B:0,P:0};for(let len=3;len<=Math.min(20,history.length-1);len++){const ls=JSON.stringify(history.slice(-len).map(h=>h.winner));for(let i=0;i<=history.length-len-1;i++)if(JSON.stringify(history.slice(i,i+len).map(h=>h.winner))===ls){const n=history[i+len].winner;if(n==='B'||n==='P')pred[n]+=1/len;}}const tot=pred.B+pred.P||1;return{B:pred.B/tot*100,P:pred.P/tot*100};}
+function mD(){const nonT=history.filter(h=>h.winner!=='T');if(nonT.length<2)return{B:50,P:50};let n=1,dir=nonT[nonT.length-1].winner;for(let i=nonT.length-2;i>=0;i--){if(nonT[i].winner===dir)n++;else break;}let fp=n<=2?.41:n===3?.47:n===4?.53:n===5?.57:Math.min(.62,.57+(n-5)*.01);return dir==='B'?{B:fp*100,P:(1-fp)*100}:{B:(1-fp)*100,P:fp*100};}
+function mE(){const r=history.slice(-30).filter(h=>h.winner!=='T');if(r.length<5)return{B:50,P:50};const bRate=r.filter(h=>h.winner==='B').length/r.length,pScore=50+(bRate-0.5)*65;return{B:100-pScore,P:pScore};}
+function mF(){const nonT=history.filter(h=>h.winner!=='T');if(nonT.length<10)return{B:50,P:50};const n=nonT.length,bCount=nonT.filter(h=>h.winner==='B').length,deviation=bCount-n*0.5068;const last7=nonT.slice(-7),bIn7=last7.filter(h=>h.winner==='B').length,momentum=(bIn7/7-0.5)*2;const scoreB=50+momentum*15-Math.tanh(deviation/8)*20;return{B:Math.min(80,Math.max(20,scoreB)),P:Math.min(80,Math.max(20,100-scoreB))};}
+function mG(){const win=history.slice(-20);if(win.length<6)return{B:50,P:50};let votes={B:0,P:0};for(let len=2;len<=4;len++){const pat=JSON.stringify(win.slice(-len).map(h=>h.winner));let freq=0,bV=0,pV=0;for(let i=0;i<=win.length-len-1;i++)if(JSON.stringify(win.slice(i,i+len).map(h=>h.winner))===pat){freq++;const nx=win[i+len].winner;if(nx==='B')bV++;if(nx==='P')pV++;}if(freq>=2){votes.B+=bV*freq*len;votes.P+=pV*freq*len;}}const tot=votes.B+votes.P||1;return{B:votes.B/tot*100,P:votes.P/tot*100};}
+const MK=['_a','_b','_c','_d','_e','_f','_g'],MF=[mA,mB,mC,mD,mE,mF,mG];
+
+function learn(actual){if(!predLog.length)return;const last=predLog[predLog.length-1];if(last.actual!==null)return;last.actual=actual;last.correct=(last.pred===actual);last.index=history.length-1;MK.forEach((k,i)=>{const v=last.votes[i];if(!v)return;W[k]=clamp(v===actual?W[k]+LR:W[k]-LR);});saveW();saveP();}
+
+function updateStats(){
+  document.getElementById('stB').textContent=history.filter(h=>h.winner==='B').length;
+  document.getElementById('stP').textContent=history.filter(h=>h.winner==='P').length;
+  document.getElementById('stT').textContent=history.filter(h=>h.winner==='T').length;
+}
+
+function updateHistory(){
+  const el=document.getElementById('historyBox');el.innerHTML='';
+  if(!history.length){el.innerHTML='<span style="color:var(--muted)">尚無記錄</span>';return;}
+  history.slice(-50).forEach((h,i)=>{
+    const idx=history.length-50+i;
+    const col=h.winner==='B'?'var(--red)':h.winner==='P'?'var(--blue)':'var(--green)';
+    const lbl=h.winner==='B'?'莊':h.winner==='P'?'閒':'和';
+    const log=predLog.find(p=>p.index===idx);
+    const badge=log&&log.actual!==null?(log.correct?'<span style="color:#4ade80;font-size:.6rem">✓</span>':'<span style="color:#f87171;font-size:.6rem">✗</span>'):'';
+    const sp=document.createElement('span');
+    sp.innerHTML=`<span style="color:var(--muted)">${idx+1}.</span><span style="color:${col}">${lbl}</span>${badge} `;
+    el.appendChild(sp);
+  });
+  el.scrollTop=el.scrollHeight;
+}
+
+function drawRoad(){
+  const canvas=document.getElementById('roadCanvas');
+  const wrap=document.getElementById('roadWrap');
+  const W_px=wrap.clientWidth;
+  const H_px=160;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=Math.floor(W_px*dpr);
+  canvas.height=Math.floor(H_px*dpr);
+  canvas.style.width=W_px+'px';
+  canvas.style.height=H_px+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.fillStyle='#0d1526';
+  ctx.fillRect(0,0,W_px,H_px);
+  const cell=Math.floor(Math.min(H_px/6,W_px/12));
+  if(cell<5)return;
+  const maxRows=Math.floor(H_px/cell),maxCols=Math.floor(W_px/cell);
+  let cols=[],cur=[];
+  history.forEach(h=>{
+    if(h.winner==='T'){if(cur.length)cur[cur.length-1].tie=(cur[cur.length-1].tie||0)+1;return;}
+    if(cur.length&&cur[cur.length-1].winner===h.winner&&cur.length<maxRows)cur.push({winner:h.winner,tie:0});
+    else{if(cur.length)cols.push(cur);cur=[{winner:h.winner,tie:0}];}
+  });
+  if(cur.length)cols.push(cur);
+  const startCol=Math.max(0,cols.length-maxCols);
+  cols.slice(startCol).forEach((col,ci)=>{
+    col.forEach((bead,ri)=>{
+      const x=ci*cell,y=ri*cell,r=cell/2-2,cx=x+cell/2,cy=y+cell/2;
+      ctx.shadowColor=bead.winner==='B'?'#e03030':'#2b72e8';ctx.shadowBlur=5;
+      ctx.fillStyle=bead.winner==='B'?'#e03030':'#2b72e8';
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+      ctx.strokeStyle=bead.winner==='B'?'#ff6666':'#60a5fa';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+      ctx.fillStyle='white';ctx.font=`bold ${Math.max(9,Math.floor(cell*.36))}px sans-serif`;
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(bead.winner==='B'?'莊':'閒',cx,cy);
+      if(bead.tie>0){ctx.fillStyle='#22c55e';ctx.font=`bold ${Math.max(7,Math.floor(cell*.25))}px sans-serif`;ctx.fillText(bead.tie>1?String(bead.tie):'和',cx,cy+r+4);}
+    });
+  });
+}
+
+function showPrediction(){
+  const wb=document.getElementById('waitBox'),rb=document.getElementById('resultBox');
+  if(history.length<20){
+    wb.style.display='block';rb.style.display='none';
+    document.getElementById('waitNum').textContent=history.length;
+    document.getElementById('progFill').style.width=(history.length/20*100)+'%';
+    document.getElementById('hdrCount').textContent='';document.getElementById('hdrStreak').textContent='';return;
+  }
+  wb.style.display='none';rb.style.display='flex';
+  const results=MF.map(fn=>fn()),votes=results.map(r=>r.B>=r.P?'B':'P');
+  let sB=0,sP=0;results.forEach((r,i)=>{const w=W[MK[i]];sB+=r.B*w;sP+=r.P*w;});
+  const tot=sB+sP,pB=sB/tot*100,pP=sP/tot*100,pred=pB>=pP?'B':'P',conf=Math.max(pB,pP);
+  predLog.push({pred,actual:null,votes,index:null});saveP();
+  const judged=predLog.filter(p=>p.actual!==null&&(p.actual==='B'||p.actual==='P'));
+  const hits=judged.filter(p=>p.correct).length,acc=judged.length>0?(hits/judged.length*100).toFixed(1):'--';
+  const nonT=history.filter(h=>h.winner!=='T');let streak=0,streakDir='';
+  if(nonT.length){streakDir=nonT[nonT.length-1].winner;streak=1;for(let i=nonT.length-2;i>=0;i--){if(nonT[i].winner===streakDir)streak++;else break;}}
+  const lbl=document.getElementById('predLabel');lbl.textContent=pred==='B'?'🟥 莊':'🟦 閒';lbl.className=pred==='B'?'bk':'pl';
+  document.getElementById('barB').style.width=pB+'%';document.getElementById('barP').style.width=pP+'%';
+  document.getElementById('pctB').textContent=pB.toFixed(1)+'%';document.getElementById('pctP').textContent=pP.toFixed(1)+'%';
+  const rp=document.getElementById('riskPill');
+  if(conf<54){rp.className='risk-pill rh';rp.textContent='⚠ 高風險・停手';}
+  else if(conf<58){rp.className='risk-pill rm';rp.textContent='● 中風險・小試';}
+  else{rp.className='risk-pill rl';rp.textContent='✦ 低風險・可跟';}
+  document.getElementById('accVal').textContent=acc==='--'?'--%':acc+'%';
+  document.getElementById('hitVal').textContent=hits;document.getElementById('totVal').textContent=judged.length;
+  document.getElementById('hitRow').innerHTML=judged.slice(-10).map(p=>`<div class="hdot ${p.correct?'hy':'hn'}">${p.correct?'✓':'✗'}</div>`).join('');
+  document.getElementById('hdrStreak').textContent=streak>0?`連${streakDir==='B'?'莊':'閒'} ${streak}局`:'';
+  document.getElementById('hdrCount').textContent=judged.length>0?`命中率 ${acc}%`:'';
+}
+
+function updateAll(){updateStats();updateHistory();drawRoad();showPrediction();}
+function addHand(w){if(w!=='T')learn(w);history.push({winner:w});saveH();updateAll();}
+function undoLast(){if(!history.length)return;history.pop();if(predLog.length&&predLog[predLog.length-1].actual===null)predLog.pop();saveH();saveP();updateAll();}
+function clearAll(){document.getElementById('confirmOverlay').style.display='flex';}
+function doUnlock(){
+  document.getElementById('lockOverlay').style.display='none';
+  document.getElementById('mainWrap').style.display='block';
+  document.getElementById('lockDesc').textContent='請輸入密碼以解鎖使用';
+  document.getElementById('pwErr').textContent='';
+  loadAll();updateAll();
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  window.addEventListener('resize',drawRoad);
+
+  document.getElementById('unlockBtn').addEventListener('click',()=>{
+    document.getElementById('pwArea').style.display='flex';
+    setTimeout(()=>document.getElementById('pwInput').focus(),100);
+  });
+
+  function tryUnlock(){
+    const v=document.getElementById('pwInput').value.trim();
+    const err=document.getElementById('pwErr');
+    if(v===P1||v===P2){
+      if(timerIv)clearInterval(timerIv);
+      localStorage.removeItem(P3_EK);localStorage.removeItem(P4_EK);
+      document.getElementById('timerBar').style.display='none';
+      doUnlock();return;
+    }
+    if(v===P3){
+      if(isUsed(P3_UK)){err.textContent='🚫 此密碼已使用過。';document.getElementById('pwInput').value='';return;}
+      localStorage.setItem(P3_UK,'1');localStorage.setItem(P3_EK,String(Date.now()+P3_MS));
+      doUnlock();startTimer(P3_EK);return;
+    }
+    if(v===P4){
+      if(isUsed(P4_UK)){err.textContent='🚫 此密碼已使用過。';document.getElementById('pwInput').value='';return;}
+      localStorage.setItem(P4_UK,'1');localStorage.setItem(P4_EK,String(Date.now()+P4_MS));
+      doUnlock();startTimer(P4_EK);return;
+    }
+    err.textContent='❌ 密碼錯誤';document.getElementById('pwInput').value='';
+  }
+
+  document.getElementById('pwOkBtn').addEventListener('click',tryUnlock);
+  document.getElementById('pwInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+  document.getElementById('confirmNo').addEventListener('click',()=>{document.getElementById('confirmOverlay').style.display='none';});
+  document.getElementById('confirmYes').addEventListener('click',()=>{
+    document.getElementById('confirmOverlay').style.display='none';
+    history=[];predLog=[];W={_a:1,_b:1,_c:1,_d:1,_e:1,_f:1,_g:1};
+    saveH();saveW();saveP();updateAll();
+  });
+  document.getElementById('btnB').addEventListener('click',()=>addHand('B'));
+  document.getElementById('btnP').addEventListener('click',()=>addHand('P'));
+  document.getElementById('btnT').addEventListener('click',()=>addHand('T'));
+  document.getElementById('btnUndo').addEventListener('click',undoLast);
+  document.getElementById('btnClear').addEventListener('click',clearAll);
+
+  if(isAlive(P3_EK)){doUnlock();startTimer(P3_EK);}
+  else if(isAlive(P4_EK)){doUnlock();startTimer(P4_EK);}
+  else if(getExp(P3_EK)){localStorage.removeItem(P3_EK);document.getElementById('pwArea').style.display='flex';document.getElementById('lockDesc').textContent='⏰ 限時使用已到期';document.getElementById('pwErr').textContent='請輸入正式密碼繼續使用';}
+  else if(getExp(P4_EK)){localStorage.removeItem(P4_EK);document.getElementById('pwArea').style.display='flex';document.getElementById('lockDesc').textContent='⏰ 限時使用已到期';document.getElementById('pwErr').textContent='請輸入正式密碼繼續使用';}
+
+  loadAll();
+});
+</script>
+
+</body>
+</html>
