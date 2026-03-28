@@ -575,6 +575,16 @@ document.addEventListener('DOMContentLoaded',function(){
   loadAll();
 });
 </script>
-
+<script>
+  // 每次載入頁面就自動記錄訪問 IP
+  fetch('/api/visit')
+    .then(r => r.json())
+    .then(data => {
+      console.log('訪客記錄成功：', data);
+    })
+    .catch(err => {
+      console.log('訪客記錄失敗', err);
+    });
+</script>
 </body>
 </html>
