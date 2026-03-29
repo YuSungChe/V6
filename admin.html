@@ -3,26 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>後台管理 - 訪客記錄</title>
+  <title>後台管理 - 訪客記錄 V6</title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #0a0e1a; color: #dde4f0; margin: 0; padding: 20px; }
-    h1 { color: #f5c518; text-align: center; }
-    .card { background: #111827; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    body { font-family: system-ui, sans-serif; background: #0a0e1a; color: #dde4f0; margin: 0; padding: 15px; }
+    h1 { color: #f5c518; text-align: center; margin-bottom: 20px; }
+    .card { background: #111827; border-radius: 12px; padding: 18px; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
     th, td { padding: 10px; text-align: left; border-bottom: 1px solid #1e2d45; }
     th { background: #1e2d45; }
-    .btn-block { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+    .btn-block { 
+      background: #ef4444; color: white; border: none; padding: 8px 14px; 
+      border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+    }
     .btn-block:hover { background: #dc2626; }
-    #log { font-family: monospace; white-space: pre-wrap; background: #0a0e1a; padding: 15px; border-radius: 8px; max-height: 400px; overflow-y: auto; }
+    #log { font-family: monospace; background: #0a0e1a; padding: 15px; border-radius: 8px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; }
+    input { width: 100%; padding: 12px; margin: 8px 0; background: #1e2d45; color: white; border: none; border-radius: 8px; }
   </style>
 </head>
 <body>
   <h1>後台管理 - 訪客記錄</h1>
   
   <div class="card">
-    <h2>🔐 輸入密碼</h2>
-    <input type="password" id="password" placeholder="輸入後台密碼" style="width:100%; padding:12px; margin:10px 0; border-radius:8px; background:#1e2d45; color:white; border:none;">
-    <button onclick="login()" style="width:100%; padding:12px; background:#f5c518; color:#0a0e1a; font-weight:bold; border:none; border-radius:8px;">進入後台</button>
+    <h2>🔐 後台密碼</h2>
+    <input type="password" id="password" placeholder="輸入後台密碼" style="font-size:1.1rem;">
+    <button onclick="login()" style="width:100%; padding:14px; background:#f5c518; color:#0a0e1a; font-weight:bold; border:none; border-radius:8px; margin-top:10px;">進入後台</button>
   </div>
 
   <div id="adminPanel" style="display:none;">
@@ -32,9 +36,9 @@
     </div>
 
     <div class="card">
-      <h2>封鎖 IP</h2>
-      <input type="text" id="blockIP" placeholder="輸入要封鎖的 IP" style="width:70%; padding:10px; border-radius:8px; background:#1e2d45; color:white; border:none;">
-      <button onclick="blockIPFunc()" style="width:28%; padding:10px; background:#ef4444; color:white; border:none; border-radius:8px;">封鎖</button>
+      <h2>封鎖特定 IP</h2>
+      <input type="text" id="blockIP" placeholder="輸入要封鎖的 IP 地址">
+      <button onclick="blockIPFunc()" style="width:100%; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px; margin-top:8px;">封鎖此 IP</button>
     </div>
   </div>
 
@@ -42,8 +46,7 @@
     const PASSWORD = "17881788";
 
     function login() {
-      const input = document.getElementById('password').value.trim();
-      if (input === PASSWORD) {
+      if (document.getElementById('password').value.trim() === PASSWORD) {
         document.getElementById('adminPanel').style.display = 'block';
         loadLogs();
       } else {
@@ -53,29 +56,37 @@
 
     async function loadLogs() {
       const logDiv = document.getElementById('log');
-      logDiv.innerHTML = "正在載入訪客記錄...";
-      
+      logDiv.innerHTML = "正在從後端取得訪客記錄...\n\n";
+
       try {
+        // 呼叫 visit 函數取得最新記錄
         const res = await fetch('/api/visit');
         const data = await res.json();
-        logDiv.innerHTML = `<pre>最新記錄已載入，請查看 Netlify Functions Logs\n\n${JSON.stringify(data, null, 2)}</pre>`;
+        
+        logDiv.innerHTML += `✅ 最新記錄已取得\n`;
+        logDiv.innerHTML += `IP: ${data.ip || '已記錄'}\n`;
+        logDiv.innerHTML += `時間: ${data.time || new Date().toLocaleString()}\n\n`;
+        logDiv.innerHTML += `※ 完整詳細記錄請至 Netlify → Functions → visit → Logs 查看\n`;
       } catch (e) {
-        logDiv.innerHTML = "無法直接顯示詳細記錄，請到 Netlify 後台 → Functions → visit → Logs 查看完整 IP 記錄";
+        logDiv.innerHTML += `⚠️ 無法直接顯示詳細 IP 清單\n`;
+        logDiv.innerHTML += `請至 Netlify 後台 → Functions → visit → Logs 查看所有訪客記錄\n`;
       }
     }
 
     async function blockIPFunc() {
       const ip = document.getElementById('blockIP').value.trim();
-      if (!ip) return alert("請輸入 IP");
-
-      if (confirm(`確定要封鎖 IP: ${ip} 嗎？`)) {
-        // 這裡實際上還是需要手動加到 block.js，但提供提示
-        alert(`已記錄封鎖請求：${ip}\n\n請手動到 netlify/functions/block.js 加入此 IP`);
+      if (!ip) {
+        alert("請輸入 IP 地址");
+        return;
+      }
+      if (confirm(`確定要永久封鎖以下 IP 嗎？\n\n${ip}`)) {
+        alert(`已記錄封鎖請求：${ip}\n\n請手動到 netlify/functions/block.js 檔案中加入此 IP`);
+        // 未來可升級成自動封鎖，這裡先用提示
       }
     }
 
-    // 按 Enter 也可登入
-    document.getElementById('password').addEventListener('keypress', function(e) {
+    // 按 Enter 也能登入
+    document.getElementById('password').addEventListener('keypress', e => {
       if (e.key === 'Enter') login();
     });
   </script>
