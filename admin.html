@@ -16,8 +16,9 @@
       border-radius: 6px; cursor: pointer; font-size: 0.85rem;
     }
     .btn-block:hover { background: #dc2626; }
-    #log { font-family: monospace; background: #0a0e1a; padding: 15px; border-radius: 8px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; }
-    input { width: 100%; padding: 12px; margin: 8px 0; background: #1e2d45; color: white; border: none; border-radius: 8px; }
+    #log { font-family: monospace; background: #0a0e1a; padding: 15px; border-radius: 8px; max-height: 500px; overflow-y: auto; white-space: pre-wrap; line-height: 1.5; }
+    input { width: 100%; padding: 12px; margin: 8px 0; background: #1e2d45; color: white; border: none; border-radius: 8px; font-size: 1rem; }
+    button { padding: 12px; margin-top: 8px; border: none; border-radius: 8px; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -26,19 +27,19 @@
   <div class="card">
     <h2>🔐 後台密碼</h2>
     <input type="password" id="password" placeholder="輸入後台密碼" style="font-size:1.1rem;">
-    <button onclick="login()" style="width:100%; padding:14px; background:#f5c518; color:#0a0e1a; font-weight:bold; border:none; border-radius:8px; margin-top:10px;">進入後台</button>
+    <button onclick="login()" style="width:100%; padding:14px; background:#f5c518; color:#0a0e1a; font-weight:bold; border:none; border-radius:8px;">進入後台</button>
   </div>
 
   <div id="adminPanel" style="display:none;">
     <div class="card">
-      <h2>最近訪客記錄</h2>
+      <h2>最近訪客 IP 記錄</h2>
       <div id="log">載入中...</div>
     </div>
 
     <div class="card">
-      <h2>封鎖特定 IP</h2>
-      <input type="text" id="blockIP" placeholder="輸入要封鎖的 IP 地址">
-      <button onclick="blockIPFunc()" style="width:100%; padding:12px; background:#ef4444; color:white; border:none; border-radius:8px; margin-top:8px;">封鎖此 IP</button>
+      <h2>封鎖 IP</h2>
+      <input type="text" id="blockIP" placeholder="輸入要封鎖的 IP">
+      <button onclick="blockIPFunc()" style="width:100%; padding:14px; background:#ef4444; color:white;">封鎖此 IP</button>
     </div>
   </div>
 
@@ -56,32 +57,31 @@
 
     async function loadLogs() {
       const logDiv = document.getElementById('log');
-      logDiv.innerHTML = "正在從後端取得訪客記錄...\n\n";
+      logDiv.innerHTML = "正在取得訪客記錄...\n\n";
 
       try {
-        // 呼叫 visit 函數取得最新記錄
         const res = await fetch('/api/visit');
         const data = await res.json();
         
-        logDiv.innerHTML += `✅ 最新記錄已取得\n`;
+        logDiv.innerHTML += `✅ 最新訪問已記錄\n`;
         logDiv.innerHTML += `IP: ${data.ip || '已記錄'}\n`;
         logDiv.innerHTML += `時間: ${data.time || new Date().toLocaleString()}\n\n`;
-        logDiv.innerHTML += `※ 完整詳細記錄請至 Netlify → Functions → visit → Logs 查看\n`;
+        logDiv.innerHTML += `※ 完整詳細 IP 清單請至 Netlify 後台 → Functions → visit → Logs 查看\n`;
       } catch (e) {
-        logDiv.innerHTML += `⚠️ 無法直接顯示詳細 IP 清單\n`;
-        logDiv.innerHTML += `請至 Netlify 後台 → Functions → visit → Logs 查看所有訪客記錄\n`;
+        logDiv.innerHTML += `⚠️ 目前無法直接顯示詳細清單\n請至 Netlify Functions Logs 查看所有訪客 IP\n`;
       }
     }
 
-    async function blockIPFunc() {
+    function blockIPFunc() {
       const ip = document.getElementById('blockIP').value.trim();
       if (!ip) {
         alert("請輸入 IP 地址");
         return;
       }
-      if (confirm(`確定要永久封鎖以下 IP 嗎？\n\n${ip}`)) {
-        alert(`已記錄封鎖請求：${ip}\n\n請手動到 netlify/functions/block.js 檔案中加入此 IP`);
-        // 未來可升級成自動封鎖，這裡先用提示
+      if (confirm(`確定要封鎖以下 IP 嗎？\n\n${ip}\n\n封鎖後需重新部署才會生效。`)) {
+        alert(`封鎖請求已記錄：${ip}\n\n請手動到 netlify/functions/block.js 加入此 IP，然後 Commit`);
+        // 可以把 IP 複製到剪貼簿
+        navigator.clipboard.writeText(ip);
       }
     }
 
