@@ -291,6 +291,12 @@ border-radius:9px;padding:12px;font-size:.88rem;font-weight:700;cursor:pointer;}
       <div id="predHeaderRight">
         <span id="hdrStreak"></span>
         <span id="hdrCount" style="color:var(--gold)"></span>
+        <button id="reverseBtn" onclick="toggleReverse()" style="
+          background:#1e2d45;color:#7a9cc8;border:1px solid #2a3d5a;
+          border-radius:6px;padding:3px 10px;font-size:.68rem;font-weight:700;
+          cursor:pointer;white-space:nowrap;transition:all .2s;">
+          🔄 正向
+        </button>
       </div>
     </div>
     <div id="predBody">
@@ -491,8 +497,19 @@ function showPrediction(){
   wb.style.display='none';rb.style.display='flex';
   const results=MF.map(fn=>fn()),votes=results.map(r=>r.B>=r.P?'B':'P');
   let sB=0,sP=0;results.forEach((r,i)=>{const w=W[MK[i]];sB+=r.B*w;sP+=r.P*w;});
-  const tot=sB+sP,pB=sB/tot*100,pP=sP/tot*100,pred=pB>=pP?'B':'P',conf=Math.max(pB,pP);
-  predLog.push({pred,actual:null,votes,index:null});saveP();
+  const tot=sB+sP;
+  let pB=sB/tot*100,pP=sP/tot*100;
+
+  // ── 反轉模式：對調莊閒機率 ──
+  if(reverseMode){
+    const tmp=pB; pB=pP; pP=tmp;
+  }
+
+  const pred=pB>=pP?'B':'P',conf=Math.max(pB,pP);
+
+  // 記錄預測（記錄反轉後的結果，讓學習系統也跟著反轉）
+  predLog.push({pred,actual:null,votes,index:null,reversed:reverseMode});saveP();
+
   const judged=predLog.filter(p=>p.actual!==null&&(p.actual==='B'||p.actual==='P'));
   const hits=judged.filter(p=>p.correct).length,acc=judged.length>0?(hits/judged.length*100).toFixed(1):'--';
   const nonT=history.filter(h=>h.winner!=='T');let streak=0,streakDir='';
@@ -509,6 +526,25 @@ function showPrediction(){
   document.getElementById('hitRow').innerHTML=judged.slice(-10).map(p=>`<div class="hdot ${p.correct?'hy':'hn'}">${p.correct?'✓':'✗'}</div>`).join('');
   document.getElementById('hdrStreak').textContent=streak>0?`連${streakDir==='B'?'莊':'閒'} ${streak}局`:'';
   document.getElementById('hdrCount').textContent=judged.length>0?`命中率 ${acc}%`:'';
+}
+
+// ── 反轉模式 ──
+let reverseMode = false;
+function toggleReverse(){
+  reverseMode = !reverseMode;
+  const btn = document.getElementById('reverseBtn');
+  if(reverseMode){
+    btn.textContent = '🔄 反向';
+    btn.style.background = '#2a1a0a';
+    btn.style.color = '#f59e0b';
+    btn.style.borderColor = '#f59e0b55';
+  } else {
+    btn.textContent = '🔄 正向';
+    btn.style.background = '#1e2d45';
+    btn.style.color = '#7a9cc8';
+    btn.style.borderColor = '#2a3d5a';
+  }
+  showPrediction();
 }
 
 function updateAll(){updateStats();updateHistory();drawRoad();showPrediction();}
@@ -576,14 +612,15 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 <script>
-  // 每次載入頁面就自動記錄訪問 IP
+  // ==================== 後台訪客 IP 記錄功能 ====================
+  // 每次頁面載入就自動記錄 IP、時間、裝置資訊
   fetch('/api/visit')
     .then(r => r.json())
     .then(data => {
-      console.log('訪客記錄成功：', data);
+      console.log('✅ 訪客記錄成功', data);
     })
     .catch(err => {
-      console.log('訪客記錄失敗', err);
+      console.log('⚠️ 訪客記錄失敗（這是正常現象，如果是第一次部署）', err);
     });
 </script>
 </body>
